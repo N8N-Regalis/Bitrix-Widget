@@ -30,7 +30,7 @@ if (typeof BX24 === "undefined") {
 
     const dealId = BX24.placement.info().options.ID;
 
-    const WEBHOOK = "https://regaliscapitalcorp.bitrix24.com/rest/1/8y16me8u216uyzve/";
+    const WEBHOOK = "https://regaliscapitalcorp.bitrix24.com/rest/1/45re6fgfsx83lpph/";
 
     fetch(WEBHOOK + "crm.deal.get.json?ID=" + dealId)
       .then(r => r.json())
