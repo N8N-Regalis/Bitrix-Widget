@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Bitrix Widget Debug</title>
+  <title>Deal Stage Validator</title>
 
   <!-- Bitrix CRM JS API -->
   <script src="https://api.bitrix24.com/api/v1/"></script>
@@ -10,67 +10,83 @@
 
 <body>
 
-<h2>Bitrix Widget Running...</h2>
+<h3>Deal Stage Validator Running...</h3>
 
 <script>
-/* STEP 1: Confirm GitHub page is loaded */
-alert("GITHUB WIDGET LOADED");
-console.log("GITHUB WIDGET LOADED");
+console.log("WIDGET LOADED");
 
-/* STEP 2: Check if Bitrix CRM context exists */
-console.log("BX24 object:", window.BX24);
-
+// Safety check
 if (!window.BX24) {
-  alert("NO BX24 - NOT RUNNING INSIDE BITRIX CRM");
+  alert("BX24 NOT FOUND - NOT INSIDE BITRIX CRM");
 } else {
 
-  alert("BX24 FOUND - INITIALIZING");
+  BX24.init(() => {
 
-  BX24.init(function () {
-
-    alert("BX24 READY");
+    console.log("BX24 READY");
 
     try {
 
       const dealId = BX24.placement.info().options.ID;
       console.log("Deal ID:", dealId);
 
-      const WEBHOOK = "https://regaliscapitalcorp.bitrix24.com/rest/1/8y16me8u216uyzve/";
+      const WEBHOOK = "https://regaliscapitalcorp.bitrix24.com/rest/1/rbctxohhfzho0lfp/";
 
       fetch(WEBHOOK + "crm.deal.get.json?ID=" + dealId)
-        .then(r => r.json())
+        .then(res => res.json())
         .then(data => {
 
           const deal = data.result;
+          const currentStage = deal.STAGE_ID;
 
-          console.log("Current stage:", deal.STAGE_ID);
+          console.log("Current stage:", currentStage);
 
-          const prevStage = localStorage.getItem("stage_" + dealId);
+          const key = "stage_" + dealId;
+          const prevStage = localStorage.getItem(key);
 
           console.log("Previous stage:", prevStage);
 
-          /* YOUR MAIN LOGIC */
-          if (prevStage === "LOSE" && deal.STAGE_ID !== "WON") {
+          // 🔴 INIT STORAGE IF FIRST RUN
+          if (!prevStage) {
+            localStorage.setItem(key, currentStage);
+            console.log("Stage initialized:", currentStage);
+            return;
+          }
+
+          // 🔥 MAIN LOGIC: LOSE → reopened (not WON)
+          if (prevStage === "LOSE" && currentStage !== "WON") {
 
             BX.UI.Dialogs.MessageBox.show({
-              title: "Warning",
-              message: "This deal was previously LOST and has been reopened.",
+              title: "⚠ Deal Reopened Alert",
+              message: "This deal was previously marked as LOST and has been reopened.",
+              modal: true,
               buttons: BX.UI.Dialogs.MessageBoxButtons.OK
             });
 
           }
 
-          localStorage.setItem("stage_" + dealId, deal.STAGE_ID);
+          // update stored stage
+          localStorage.setItem(key, currentStage);
 
         })
         .catch(err => {
           console.error("Webhook error:", err);
-          alert("Webhook failed");
+
+          BX.UI.Dialogs.MessageBox.show({
+            title: "Error",
+            message: "Failed to fetch deal data.",
+            buttons: BX.UI.Dialogs.MessageBoxButtons.OK
+          });
+
         });
 
     } catch (e) {
-      console.error("BX error:", e);
-      alert("BX24 CONTEXT ERROR");
+      console.error("Fatal error:", e);
+
+      BX.UI.Dialogs.MessageBox.show({
+        title: "Critical Error",
+        message: e.message,
+        buttons: BX.UI.Dialogs.MessageBoxButtons.OK
+      });
     }
 
   });
