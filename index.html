@@ -11,6 +11,12 @@
 <body>
 
 <script>
+  console.log("SCRIPT STARTED");
+
+if (!window.BX24) {
+  alert("BX24 NOT FOUND - widget not running inside Bitrix");
+}
+  
 alert("WIDGET LOADED");
 console.log("WIDGET LOADED");
 
