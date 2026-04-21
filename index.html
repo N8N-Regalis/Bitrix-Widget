@@ -1,35 +1,67 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head> </head>
+<head>
+  <meta charset="UTF-8" />
+  <title>Bitrix Deal Widget</title>
 
-  <body>
-    <script>
-      alert("WIDGET LOADED");
-      console.log("WIDGET LOADED");
-      BX24.init(function () {
-        const dealId = BX24.placement.info().options.ID;
+  <!-- REQUIRED for Bitrix CRM context -->
+  <script src="https://api.bitrix24.com/api/v1/"></script>
+</head>
 
-        const WEBHOOK =
-          "https://regaliscapitalcorp.bitrix24.com/rest/1/8y16me8u216uyzve/";
+<body>
 
-        fetch(WEBHOOK + "crm.deal.get.json?ID=" + dealId)
-          .then((r) => r.json())
-          .then((data) => {
-            const deal = data.result;
+<script>
+alert("WIDGET LOADED");
+console.log("WIDGET LOADED");
 
-            const prev = localStorage.getItem("stage_" + dealId);
+if (typeof BX24 === "undefined") {
+  alert("BX24 NOT AVAILABLE");
+} else {
 
-            if (prev === "LOSE" && deal.STAGE_ID !== "WON") {
-              BX.UI.Dialogs.MessageBox.show({
-                title: "Warning",
-                message: "Deal was previously LOST and has been reopened.",
-                buttons: BX.UI.Dialogs.MessageBoxButtons.OK,
-              });
-            }
+  BX24.init(function () {
 
-            localStorage.setItem("stage_" + dealId, deal.STAGE_ID);
+    alert("BX24 READY");
+
+    const dealId = BX24.placement.info().options.ID;
+
+    const WEBHOOK = "https://regaliscapitalcorp.bitrix24.com/rest/1/8y16me8u216uyzve/";
+
+    fetch(WEBHOOK + "crm.deal.get.json?ID=" + dealId)
+      .then(r => r.json())
+      .then(data => {
+
+        const deal = data.result;
+
+        const prevStage = localStorage.getItem("stage_" + dealId);
+
+        // Debug log
+        console.log("Previous:", prevStage);
+        console.log("Current:", deal.STAGE_ID);
+
+        // Main logic: LOSE → any stage except WON
+        if (prevStage === "LOSE" && deal.STAGE_ID !== "WON") {
+
+          BX.UI.Dialogs.MessageBox.show({
+            title: "Warning",
+            message: "This deal was previously marked as LOST and has been reopened.",
+            buttons: BX.UI.Dialogs.MessageBoxButtons.OK
           });
+
+        }
+
+        // Save current stage for next comparison
+        localStorage.setItem("stage_" + dealId, deal.STAGE_ID);
+
+      })
+      .catch(err => {
+        console.error("Webhook error:", err);
+        alert("Webhook failed");
       });
-    </script>
-  </body>
+
+  });
+
+}
+</script>
+
+</body>
 </html>
