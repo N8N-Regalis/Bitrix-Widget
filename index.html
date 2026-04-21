@@ -1,19 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8" />
+  <title>Bitrix Widget Debug</title>
+
+  <!-- Bitrix CRM JS API -->
   <script src="https://api.bitrix24.com/api/v1/"></script>
 </head>
 
 <body>
 
+<h2>Bitrix Widget Running...</h2>
+
 <script>
-document.body.innerHTML = "<h1>GITHUB WIDGET LOADED</h1>";
+/* STEP 1: Confirm GitHub page is loaded */
+alert("GITHUB WIDGET LOADED");
 console.log("GITHUB WIDGET LOADED");
 
-if (window.BX24) {
-  console.log("BX24 EXISTS");
+/* STEP 2: Check if Bitrix CRM context exists */
+console.log("BX24 object:", window.BX24);
+
+if (!window.BX24) {
+  alert("NO BX24 - NOT RUNNING INSIDE BITRIX CRM");
 } else {
-  console.log("BX24 NOT FOUND");
+
+  alert("BX24 FOUND - INITIALIZING");
+
+  BX24.init(function () {
+
+    alert("BX24 READY");
+
+    try {
+
+      const dealId = BX24.placement.info().options.ID;
+      console.log("Deal ID:", dealId);
+
+      const WEBHOOK = "https://regaliscapitalcorp.bitrix24.com/rest/1/8y16me8u216uyzve/";
+
+      fetch(WEBHOOK + "crm.deal.get.json?ID=" + dealId)
+        .then(r => r.json())
+        .then(data => {
+
+          const deal = data.result;
+
+          console.log("Current stage:", deal.STAGE_ID);
+
+          const prevStage = localStorage.getItem("stage_" + dealId);
+
+          console.log("Previous stage:", prevStage);
+
+          /* YOUR MAIN LOGIC */
+          if (prevStage === "LOSE" && deal.STAGE_ID !== "WON") {
+
+            BX.UI.Dialogs.MessageBox.show({
+              title: "Warning",
+              message: "This deal was previously LOST and has been reopened.",
+              buttons: BX.UI.Dialogs.MessageBoxButtons.OK
+            });
+
+          }
+
+          localStorage.setItem("stage_" + dealId, deal.STAGE_ID);
+
+        })
+        .catch(err => {
+          console.error("Webhook error:", err);
+          alert("Webhook failed");
+        });
+
+    } catch (e) {
+      console.error("BX error:", e);
+      alert("BX24 CONTEXT ERROR");
+    }
+
+  });
+
 }
 </script>
 
